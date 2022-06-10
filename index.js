@@ -3,8 +3,6 @@ const https = require("https");
 const bodyParser = require("body-parser");
 const fs = require("fs");
 const rsa = require("node-rsa");
-const { StringDecoder } = require("string_decoder");
-const { stringify } = require("querystring");
 
 const app = express();
 
@@ -22,28 +20,37 @@ app.use(bodyParser.urlencoded({extended: true}));
 
 app.get("/", function(req, res){res.sendFile(__dirname + "/index.html");})
 
-app.get("/:any", function(req, res){res.send("Error 404 Page Not Found!");})
-
-
 app.post("/", function(req, res){
     const rollno = req.body.rollno;
     const url = "https://safe-inlet-89748.herokuapp.com/students/" +rollno;
+    const RegUrl = "https://guarded-inlet-86199.herokuapp.com/registrations/" +rollno;
 
-    https.get(url, function(response){
-
-        response.on("data", function(data){
-
-            if (rollno>=1 && rollno<=50) {
+    if (rollno>=1 && rollno<=50){
+        https.get(url, function(response){
+            response.on("data", function(data){
                 const studentData = String(data)
                 const decryptedData = JSON.parse(publickey.decryptPublic(studentData))
                 res.write("Roll No. : " + decryptedData.rollNo);
                 res.write("\nStudent Name: " + decryptedData.name);
-            } else {
-                res.write("No student found with this Roll No.");
-            }
-            res.send();
+                https.get(RegUrl, function(response){
+                    response.on("data", function(data){
+                        const regData = JSON.parse(data)
+                        res.write("\nRegistration No. : " + regData.regNo);
+                        res.send();
+                    })
+                })
+            })
         })
-    })
+    } else {
+        res.write("No student found with this Roll No.");
+        res.send();
+    }
+})
+ 
+app.get("/:any", function(request, response){
+    if(response){
+        response.send('<div id="main"><div class="fof"><center><h1>Error 404\nPage Not Found</h1></center></div></div>');
+    }
 })
 
 let port = process.env.PORT;
