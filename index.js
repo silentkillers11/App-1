@@ -1,8 +1,10 @@
+//importing required libraries
 const express = require("express");
 const https = require("https");
 const bodyParser = require("body-parser");
 const fs = require("fs");
 const rsa = require("node-rsa");
+const crypto = require("crypto");
 
 const app = express();
 
@@ -15,15 +17,24 @@ var private = fs.readFileSync("private.pem", "utf8");
 publickey.importKey(public);
 privateKey.importKey(private);
 
+//Function to decrypt data
+function decryptString (ciphertext, privateKeyFile) {
+	const privateKey = fs.readFileSync(privateKeyFile, "utf8");
+	// privateDecrypt() method with its parameters
+	const decrypted = crypto.privateDecrypt({key: privateKey,passphrase: ''},Buffer.from(ciphertext, "base64"));
+	return decrypted.toString("utf8");
+}
 
 app.use(bodyParser.urlencoded({extended: true}));
 
+//GET method for index url
 app.get("/", function(req, res){res.sendFile(__dirname + "/index.html");})
 
+//POST Method for fetching data from App-2 and App-3 through API call
 app.post("/", function(req, res){
     const rollno = req.body.rollno;
-    const url = "https://safe-inlet-89748.herokuapp.com/students/" +rollno;
-    const RegUrl = "https://guarded-inlet-86199.herokuapp.com/registrations/" +rollno;
+    const url = "https://safe-inlet-89748.herokuapp.com/students/" +rollno;     //App-2 API call
+    const RegUrl = "https://guarded-inlet-86199.herokuapp.com/registrations/" +rollno;      //App-3 API call
 
     if (rollno>=1 && rollno<=50){
         https.get(url, function(response){
@@ -34,9 +45,9 @@ app.post("/", function(req, res){
                 res.write("\nStudent Name: " + decryptedData.name);
                 https.get(RegUrl, function(response){
                     response.on("data", function(data){
-                        const regData = JSON.parse(data)
-                        res.write("\nRegistration No. : " + regData.regNo);
-                        res.send();
+                        const regData = String(data)
+                        res.write("\nRegistration No. : " + JSON.parse(decryptString(regData, "private_key")));
+                        res.end();
                     })
                 })
             })
