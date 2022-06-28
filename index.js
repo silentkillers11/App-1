@@ -57,7 +57,8 @@ app.post("/", function(req, res){
         res.send();
     }
 })
- 
+
+//GET method for Error 404 Page Not Found
 app.get("/:any", function(request, response){
     if(response){
         response.send('<div id="main"><div class="fof"><center><h1>Error 404\nPage Not Found</h1></center></div></div>');
